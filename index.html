@@ -327,6 +327,7 @@ input[type=range] {
   margin: 0;
   top: 0; left: 0;
   z-index: 2;
+  transform: scaleX(-1); /* flip: drag right = decrease value = harder */
   -webkit-appearance: none; appearance: none;
 }
 
@@ -560,7 +561,7 @@ html[data-theme="light"] .date-inp::-webkit-calendar-picker-indicator {
   border-bottom: 1px solid var(--border);
 }
 .sum-lbl { font-size: 0.875rem; font-weight: 600; color: var(--txt2); }
-.sum-val { font-family: 'Inter Tight', sans-serif; font-size: 1.375rem; font-weight: 800; color: var(--txt); letter-spacing: -0.03em; line-height: 1; }
+.sum-val { font-family: 'Inter Tight', sans-serif; font-size: 1.375rem; font-weight: 800; color: var(--txt); letter-spacing: -0.03em; line-height: 1; display: flex; align-items: baseline; gap: 3px; flex-wrap: wrap; }
 .sum-val.accent { color: var(--accent) }
 
 /* ── TOAST ───────────────────────────────── */
@@ -676,7 +677,7 @@ html[data-theme="light"] .date-inp::-webkit-calendar-picker-indicator {
         <label class="field-lbl" for="intensity">Training Intensity</label>
         <div class="int-box">
           <div class="int-marks" aria-hidden="true">
-            <span>Hard</span><span>Easy</span>
+            <span>Easy</span><span>Hard</span>
           </div>
           <div class="int-track-wrap">
             <input type="range" id="intensity"
@@ -939,7 +940,7 @@ function render() {
   document.getElementById('wkSummary').innerHTML = [
     { l:'Run days',       v: p.ob ? `${totalRunDays}`                     : '—', hi: true },
     { l:'Rest days',      v: p.ob ? `${restDays}`                         : '—'           },
-    { l:'Total distance', v: p.ob && p.og ? `${fd(wkm)} km`              : '—'           },
+    { l:'Total distance', v: p.ob && p.og ? `${fd(wkm)}<span style="font-size:0.875rem;font-weight:400;color:var(--txt3);margin-left:2px">km</span>` : '—' },
     { l:'Avg pace',       v: (p.ob && p.og && avgPace) ? `${f2(avgPace)}<span style="font-size:0.875rem;font-weight:400;color:var(--txt3);margin-left:2px">min/km</span>` : '—' },
   ].map(it => `
     <div class="sum-item">
@@ -993,10 +994,10 @@ function toast(msg) {
 
 /* ── INTENSITY ──────────────────────────────── */
 /* ── INTENSITY TRACK ────────────────────────── */
-// Native slider: left=0.1(hard), right=1.5(easy)
-// We render ticks left→right: 0.1 ... 1.5
-// Active (orange) = ticks left of/at handle (≤ val)
-const STEPS = Array.from({length:15}, (_,i) => Math.round((0.1 + i*0.1)*10)/10);
+// Native slider: left=0.1(hard/min), right=1.5(easy/max)
+// We render ticks right→left visually: left=1.5(easy), right=0.1(hard)
+// Active (orange) = ticks on the Easy side (right of handle on native = ≥ val)
+const STEPS = Array.from({length:15}, (_,i) => Math.round((1.5 - i*0.1)*10)/10); // 1.5→0.1
 const MID_STEP = 0.8;
 
 function renderTrack(val) {
@@ -1005,7 +1006,7 @@ function renderTrack(val) {
 
   let html = '';
   STEPS.forEach((step) => {
-    const isActive = step <= val;
+    const isActive = step >= val; // Easy side (higher values) = active/orange
     const isMid    = Math.abs(step - MID_STEP) < 0.001;
     const isHandle = Math.abs(step - Math.round(val*10)/10) < 0.001;
 
